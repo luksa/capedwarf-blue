@@ -1,0 +1,26 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<h2>Datastore viewer</h2>
+<form action="datastore.vm">
+    <label for="entityKindSelect">Entity kind:</label>
+    <select id="entityKindSelect" name="entityKind">
+        #foreach($kind in $entityKinds)
+            <option value="$kind" #if($selectedEntityKind==$kind) SELECTED #end>$kind</option>
+        #end
+    </select>
+    <input type="submit" value="List Entities"/>
+</form>
+
+<br><br>
+Selected: $selectedEntityKind
+<br><br>
+MyTestBean: $myTestBean.hello
+<br><br>
+MyTestBean: $myTestBean.getHello()
+
+
+
+###if($entityKind == null)
+###end
+

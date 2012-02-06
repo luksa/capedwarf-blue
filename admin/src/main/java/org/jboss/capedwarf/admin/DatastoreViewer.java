@@ -25,7 +25,6 @@ package org.jboss.capedwarf.admin;
 import com.google.appengine.api.datastore.*;
 
 import javax.enterprise.context.RequestScoped;
-import javax.faces.component.html.HtmlPanelGroup;
 import javax.inject.Named;
 import java.util.*;
 
@@ -40,8 +39,6 @@ public class DatastoreViewer {
 
     private static List<String> properties = new ArrayList<String>();
     private static List<Row> rows = new ArrayList<Row>();
-
-    private DynamicTable table = new DynamicTable("#{datastoreViewer.rows}");
 
     public String getEntityKind() {
         return entityKind;
@@ -67,23 +64,11 @@ public class DatastoreViewer {
 
     public String update() {
         loadEntities();
-        populateDataTable();
         return "ok";
     }
 
     public List<Row> getRows() {
         return rows;
-    }
-
-    private void populateDataTable() {
-        table.clearColumns();
-        table.addLinkColumn("key", "Key", "datastoreEntity.cdi?key=#{row.key}");
-        table.addColumn("writeOps", "Write ops");
-        table.addColumn("idName", "ID/Name");
-        for (int i = 0, propertiesSize = properties.size(); i < propertiesSize; i++) {
-            String columnHeading = properties.get(i);
-            table.addColumn("cells[" + i + "]", columnHeading);
-        }
     }
 
     private void loadEntities() {
@@ -98,13 +83,13 @@ public class DatastoreViewer {
         properties.addAll(propertyNameSet);
     }
 
-    public HtmlPanelGroup getDynamicDataTableGroup() {
-        populateDataTable();
-        return table;
-    }
+//    public HtmlPanelGroup getDynamicDataTableGroup() {
+//        populateDataTable();
+//        return table;
+//    }
 
-    public void setDynamicDataTableGroup(HtmlPanelGroup dynamicDataTableGroup) {
-    }
+//    public void setDynamicDataTableGroup(HtmlPanelGroup dynamicDataTableGroup) {
+//    }
 
     public class Row {
         private Entity entity;

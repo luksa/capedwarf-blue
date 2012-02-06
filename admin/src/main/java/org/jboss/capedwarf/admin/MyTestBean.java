@@ -22,31 +22,28 @@
 
 package org.jboss.capedwarf.admin;
 
-import javax.faces.view.facelets.ResourceResolver;
-import java.net.URL;
+import com.google.appengine.api.datastore.DatastoreServiceFactory;
+import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.EntityNotFoundException;
+import com.google.appengine.api.datastore.KeyFactory;
+
+import javax.enterprise.context.RequestScoped;
+import javax.inject.Named;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Marko Luksa
- * @author Ales Justin
  */
-public class CustomResourceResolver extends ResourceResolver {
+@Named("myTestBean")
+@RequestScoped
+public class MyTestBean {
 
-    private static final String ADMIN_PREFIX = "/_ah/admin";
-    private static final String ADMIN_PACKAGE = "/org/jboss/capedwarf/admin";
-
-    private ResourceResolver defaultResourceResolver;
-
-    public CustomResourceResolver(ResourceResolver defaultResourceResolver) {
-        this.defaultResourceResolver = defaultResourceResolver;
+    public String getHello() {
+        return "Helllllllllloooooo";
     }
 
-    @Override
-    public URL resolveUrl(String resource) {
-        if (resource.startsWith(ADMIN_PREFIX)) {
-            resource = resource.substring(ADMIN_PREFIX.length());
-            return Thread.currentThread().getContextClassLoader().getResource(ADMIN_PACKAGE + resource);
-        } else {
-            return defaultResourceResolver.resolveUrl(resource);
-        }
-    }
+
 }
