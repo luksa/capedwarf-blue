@@ -49,7 +49,7 @@ public class CapedwarfSearchService implements SearchService {
     private Cache<CacheKey, CacheValue> cache;
 
     public CapedwarfSearchService() {
-        initCache();
+        this(emptyIfNull(NamespaceManager.get()));
     }
 
     public CapedwarfSearchService(String namespace) {
@@ -64,7 +64,7 @@ public class CapedwarfSearchService implements SearchService {
     }
 
     public Index getIndex(IndexSpec indexSpec) {
-        return new CapedwarfSearchIndex(indexSpec.getName(), resolveNamespace(), indexSpec.getConsistency(), cache);
+        return new CapedwarfSearchIndex(indexSpec.getName(), namespace, indexSpec.getConsistency(), cache);
     }
 
     public Index getIndex(IndexSpec.Builder builder) {
@@ -73,15 +73,6 @@ public class CapedwarfSearchService implements SearchService {
 
     public String getNamespace() {
         return namespace;
-    }
-
-    private String resolveNamespace() {
-        if (namespace == null) {
-            String namespace = NamespaceManager.get();
-            return namespace == null ? "" : namespace;
-        } else {
-            return namespace;
-        }
     }
 
     public ListIndexesResponse listIndexes(ListIndexesRequest request) {
@@ -102,5 +93,9 @@ public class CapedwarfSearchService implements SearchService {
 
     public boolean isEmpty() {
         return cache.isEmpty();
+    }
+
+    private static String emptyIfNull(String str) {
+        return str == null ? "" : str;
     }
 }

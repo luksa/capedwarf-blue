@@ -70,6 +70,9 @@ public class CapedwarfSearchIndex implements Index {
     private SearchManager searchManager;
 
     public CapedwarfSearchIndex(String name, String namespace, Consistency consistency, Cache<CacheKey, CacheValue> cache) {
+        if (name == null) {
+            throw new NullPointerException("name should not be null");
+        }
         this.name = name;
         this.namespace = namespace;
         this.consistency = consistency;
@@ -160,10 +163,15 @@ public class CapedwarfSearchIndex implements Index {
         List<Document> documentList = new ArrayList<Document>();
         List<String> documentIds = new ArrayList<String>();
         for (Document document : documents) {
-            assignIdIfNeeded(document);
-            cache.put(getCacheKey(document.getId()), getCacheValue(document));
+            Document storedDocument;
+            if (document.getId() == null) {
+                storedDocument = createCopyWithId(document, generateId(document));
+            } else {
+                storedDocument = document;
+            }
+            cache.put(getCacheKey(storedDocument.getId()), getCacheValue(storedDocument));
             documentList.add(document);
-            documentIds.add(document.getId());
+            documentIds.add(storedDocument.getId());
         }
 
         return ReflectionUtils.newInstance(
@@ -172,10 +180,8 @@ public class CapedwarfSearchIndex implements Index {
             new Object[]{documentList, documentIds});
     }
 
-    private void assignIdIfNeeded(Document document) {
-        if (document.getId() == null) {
-            ReflectionUtils.setFieldValue(document, "documentId", generateId(document));
-        }
+    private void assignId(Document document, String id) {
+        ReflectionUtils.setFieldValue(document, "documentId", id);
     }
 
     private String generateId(Document document) {
@@ -220,13 +226,24 @@ public class CapedwarfSearchIndex implements Index {
 
     private ScoredDocument createScoredDocument(Document document) {
         ScoredDocument.Builder builder = ScoredDocument.newBuilder();
+        copyProperties(document, builder);
+        return builder.build();
+    }
+
+    private Document createCopyWithId(Document document, String id) {
+        Document.Builder builder = Document.newBuilder();
+        builder.setId(id);
+        copyProperties(document, builder);
+        return builder.build();
+    }
+
+    private void copyProperties(Document document, Document.Builder builder) {
         builder.setId(document.getId());
         builder.setLocale(document.getLocale());
         builder.setRank(document.getRank());
         for (Field field : document.getFields()) {
             builder.addField(field);
         }
-        return builder.build();
     }
 
     private org.apache.lucene.search.Query createLuceneQuery(Query query) {

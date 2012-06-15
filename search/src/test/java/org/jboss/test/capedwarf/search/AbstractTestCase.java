@@ -22,6 +22,7 @@
 
 package org.jboss.test.capedwarf.search;
 
+import com.google.appengine.api.NamespaceManager;
 import com.google.appengine.api.search.Consistency;
 import com.google.appengine.api.search.Document;
 import com.google.appengine.api.search.Field;
@@ -73,6 +74,7 @@ public abstract class AbstractTestCase {
     @After
     public void tearDown() throws Exception {
         ((CapedwarfSearchService) service).clear();
+        NamespaceManager.set("");
     }
 
 
@@ -167,9 +169,7 @@ public abstract class AbstractTestCase {
         List<Document> results = getAllDocumentsIn(index);
         assertEquals(1, results.size());
 
-        Document retrievedDoc = results.get(0);
-        assertEquals(doc, retrievedDoc);
-        return retrievedDoc;
+        return results.get(0);
     }
 
     protected int numberOfDocumentsIn(Index index) {

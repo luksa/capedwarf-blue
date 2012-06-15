@@ -22,6 +22,8 @@
 
 package org.jboss.test.capedwarf.search;
 
+import com.google.appengine.api.NamespaceManager;
+import com.google.appengine.api.search.AddResponse;
 import com.google.appengine.api.search.Consistency;
 import com.google.appengine.api.search.Document;
 import com.google.appengine.api.search.Field;
@@ -31,6 +33,7 @@ import com.google.appengine.api.search.ListRequest;
 import com.google.appengine.api.search.SearchService;
 import com.google.appengine.api.search.SearchServiceFactory;
 import org.jboss.capedwarf.search.CapedwarfSearchService;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -46,6 +49,7 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
+import static org.junit.Assert.assertNull;
 
 /**
  * @author <a href="mailto:mluksa@redhat.com">Marko Luksa</a>
@@ -53,23 +57,65 @@ import static junit.framework.Assert.fail;
 public class BasicTestCase extends AbstractTestCase {
 
     @Test
-    public void testGetSearchService() {
+    public void testBothGetSearchServiceMethodsReturnsCapedwarfImplementation() {
+        SearchService service = SearchServiceFactory.getSearchService();
         assertTrue(service instanceof CapedwarfSearchService);
-        // TODO: check namespace
+
+        service = SearchServiceFactory.getSearchService("foo");
+        assertTrue(service instanceof CapedwarfSearchService);
+    }
+
+    @Test
+    public void testGetSearchServiceHonorsNamespaceManager() {
+        NamespaceManager.set("foo");
+        SearchService service = SearchServiceFactory.getSearchService();
+        assertEquals("foo", service.getNamespace());
     }
 
     @Test
     public void testGetSearchServiceWithNamespace() {
         SearchService service = SearchServiceFactory.getSearchService("foo");
-        assertTrue(service instanceof CapedwarfSearchService);
         assertEquals("foo", service.getNamespace());
     }
 
     @Test
     public void testIndexInheritsNamespaceFromSearchService() {
         SearchService service = SearchServiceFactory.getSearchService("foo");
-        Index index = service.getIndex(IndexSpec.newBuilder().build());
+        Index index = service.getIndex(getIndexSpec("bar", Consistency.GLOBAL));
         assertEquals("foo", index.getNamespace());
+    }
+
+    @Test
+    public void testSearchServiceRetainsNamespaceThatWasActiveWhenSearchServiceWasObtained() {
+        NamespaceManager.set("foo");
+        SearchService service = SearchServiceFactory.getSearchService();
+        assertEquals("foo", service.getNamespace());
+
+        NamespaceManager.set("bar");
+        assertEquals("foo", service.getNamespace());
+    }
+
+    @Test
+    public void testIndexRetainsNamespaceThatWasActiveWhenSearchServiceWasObtained() {
+        NamespaceManager.set("foo");
+        SearchService service = SearchServiceFactory.getSearchService();
+        NamespaceManager.set("bar");
+        Index index = service.getIndex(getIndexSpec("myIndex", Consistency.GLOBAL));
+        assertEquals("foo", index.getNamespace());
+        NamespaceManager.set("baz");
+        assertEquals("foo", index.getNamespace());
+    }
+
+    @Test(expected = Exception.class)
+    public void testIndexNameMustNotBeNull() {
+        IndexSpec indexSpec = IndexSpec.newBuilder().build();
+        service.getIndex(indexSpec);
+    }
+
+    @Test(expected = Exception.class)
+    public void testIndexNameMustNotBeEmpty() {
+        IndexSpec indexSpec = IndexSpec.newBuilder().setName("").build();
+        service.getIndex(indexSpec);
     }
 
     @Test
@@ -89,7 +135,8 @@ public class BasicTestCase extends AbstractTestCase {
         Document doc = newEmptyDocument("foo");
 
         Index index = getTestIndex();
-        index.add(doc);
+        AddResponse addResponse = index.add(doc);
+        assertEquals(Arrays.asList("foo"), addResponse.getIds());
 
         List<Document> documents = getAllDocumentsIn(index);
         assertEquals(1, documents.size());
@@ -101,14 +148,15 @@ public class BasicTestCase extends AbstractTestCase {
         Document doc = newEmptyDocument();   // id-less document
 
         Index index = getTestIndex();
-        index.add(doc);
+        AddResponse addResponse = index.add(doc);
+        assertNull("id should stay null", doc.getId());
 
-        assertNotNull(doc.getId()); // TODO: check if document is really supposed to get the id (perhaps it must stay null)
+        String addedId = addResponse.getIds().get(0);
 
         List<Document> documents = getAllDocumentsIn(index);
         assertEquals(1, documents.size());
-        assertEquals(doc, documents.get(0));
-        assertNotNull(documents.get(0).getId());
+//        assertEquals(doc, documents.get(0));
+        assertEquals(addedId, documents.get(0).getId());
     }
 
     @Test

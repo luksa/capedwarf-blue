@@ -146,8 +146,48 @@ public class SearchTestCase extends AbstractTestCase {
         Index index = getTestIndex();
         index.add(newDocument("a", newField("foo").setHTML("<html><body>hello</body></html>")));
         index.add(newDocument("b", newField("foo").setHTML("<html><body>body</body></html>")));
-
         assertSearchYields(index, "foo:body", "b");
+    }
+
+    @Test
+    public void testSearchOnAtomFieldReturnsOnlyExactMatches() {
+        Index index = getTestIndex();
+        index.add(newDocument("a", newField("foo").setAtom("foo bar baz")));
+        assertSearchYieldsNothing(index, "foo:bar");
+    }
+
+    @Ignore("doesn't work")
+    @Test
+    public void testSearchForPhraseOnAtomField() {
+        Index index = getTestIndex();
+        index.add(newDocument("a", newField("foo").setAtom("foo bar baz")));
+        assertSearchYields(index, "foo=\"foo bar baz\"", "a");
+        assertSearchYields(index, "foo:\"foo bar baz\"", "a");
+    }
+
+    @Test
+    public void testEqualsOnAtomFieldMatchesOnlyOnExactMatch() {
+        Index index = getTestIndex();
+        index.add(newDocument("a", newField("foo").setAtom("foo bar")));
+        index.add(newDocument("b", newField("foo").setAtom("bar")));
+        assertSearchYields(index, "foo=bar", "b");
+    }
+
+    @Ignore("Doesn't work yet")
+    @Test
+    public void testPhraseEqualsOnAtomFieldMatchesOnlyOnExactMatch() {
+        Index index = getTestIndex();
+        index.add(newDocument("a", newField("foo").setAtom("foo bar")));
+        index.add(newDocument("b", newField("foo").setAtom("bar")));
+        assertSearchYields(index, "foo=\"foo bar\"", "a");
+    }
+
+    @Test
+    public void testEqualsOnTextAndHtmlFieldsAlsoMatchesTerms() {
+        Index index = getTestIndex();
+        index.add(newDocument("a", newField("foo").setText("foo bar")));
+        index.add(newDocument("b", newField("foo").setHTML("foo bar")));
+        assertSearchYields(index, "foo=bar", "a", "b");
     }
 
     @Test
@@ -162,6 +202,10 @@ public class SearchTestCase extends AbstractTestCase {
         cal.set(year, month - 1, day, 0, 0, 0);
         cal.clear(Calendar.MILLISECOND);
         return cal.getTime();
+    }
+
+    private void assertSearchYieldsNothing(Index index, String queryString) {
+        assertSearchYields(index, queryString);
     }
 
     private void assertSearchYields(Index index, String queryString, String... documentIds) {
@@ -184,16 +228,6 @@ public class SearchTestCase extends AbstractTestCase {
                 fail("Search \"" + queryString + "\" yielded unexpected document id: " + scoredDocument.getId());
             }
         }
-    }
-
-    @Ignore("No stemming yet")
-    @Test
-    public void testSearchByWordStem() {
-        Index index = getTestIndex();
-        index.add(newDocument("fooaaa", newField("foo").setText("rolling trolled")));
-        index.add(newDocument("foobbb", newField("foo").setText("bowling")));
-
-        assertSearchYields(index, "foo:roll", "fooaaa");
     }
 
     @Test
@@ -250,7 +284,7 @@ public class SearchTestCase extends AbstractTestCase {
         assertSearchYields(index, "body:foo NOT body:baz", "without_baz");
     }
 
-    @Ignore("check if this is even a valid test")
+    @Ignore("doesn't work")
     @Test
     public void testSearchWithNegation2() {
 
@@ -263,7 +297,7 @@ public class SearchTestCase extends AbstractTestCase {
         assertSearchYields(index, "body:foo OR NOT body:baz", "foo_with_baz", "foo_without_baz", "without_foo_without_baz");
     }
 
-    @Ignore("Not supported by Lucene. Must check if it is even supported by GAE")
+    @Ignore("Not supported by Lucene. Must find a hack.")
     @Test
     public void testSearchWithNegationOnly() {
         Index index = getTestIndex();
