@@ -70,6 +70,8 @@ class BCMD5Digest extends AbstractDigest {
     }
 
     public void update(ByteBuffer buffer) {
-        update(buffer.array());
+        byte[] bytes = new byte[buffer.remaining()];
+        buffer.get(bytes);
+        update(bytes);
     }
 }

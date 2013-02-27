@@ -58,9 +58,8 @@ class CapedwarfFileWriteChannel implements FileWriteChannel {
     }
 
     public int write(ByteBuffer buffer) throws IOException {
-        int write = delegate.write(buffer);
-        getDigest().update(buffer);
-        return write;
+        getDigest().update(buffer.duplicate());
+        return delegate.write(buffer);
     }
 
     public boolean isOpen() {
