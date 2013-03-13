@@ -82,6 +82,7 @@ public class TasksMessageCreator implements MessageCreator {
     }
 
     public void enhanceMessage(Message message) throws Exception {
+        message.setStringProperty("TaskName", taskOptions.getTaskName());
         addMethod(message);
         addHeaders(message);
         addParameters(message);

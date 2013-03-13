@@ -336,6 +336,13 @@ class CapedwarfQueue implements Queue {
 
     private TaskHandle addPushTask(ServletExecutorProducer producer, TaskOptionsHelper options) {
         try {
+            PushQueueChecker pushQueueChecker = new PushQueueChecker();
+            try {
+                pushQueueChecker.checkTaskNameNotDuplicate(options.getTaskName());
+            } finally {
+                pushQueueChecker.dispose();
+            }
+
             TaskOptions copy = new TaskOptions(options.getTaskOptions());
             MessageCreator mc = createMessageCreator(options.getTaskOptions());
             String id = producer.sendMessage(mc);
