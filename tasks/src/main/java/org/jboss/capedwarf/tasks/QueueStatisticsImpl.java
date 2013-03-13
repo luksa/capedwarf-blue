@@ -38,6 +38,7 @@ import org.jboss.capedwarf.common.reflection.ReflectionUtils;
  * Default Queue stats impl.
  *
  * @author <a href="mailto:ales.justin@jboss.org">Ales Justin</a>
+ * @author <a href="mailto:mluksa@redhat.com">Marko Luksa</a>
  */
 class QueueStatisticsImpl extends JmsAdapter implements QueueStatisticsInternal {
     static final Class[] types = new Class[]{String.class, TaskQueuePb.TaskQueueFetchQueueStatsResponse.QueueStats.class};
@@ -69,30 +70,15 @@ class QueueStatisticsImpl extends JmsAdapter implements QueueStatisticsInternal 
 
     protected QueueStatistics fetchStatisticsInternal() {
         try {
-            TaskQueuePb.TaskQueueFetchQueueStatsResponse.QueueStats stats = new TaskQueuePb.TaskQueueFetchQueueStatsResponse.QueueStats();
-
-            int numTasks;
             long oldestEtaUsec = -1L;
-            int requestsInFlight = 0;
             double enforcedRate = 0;
 
-            final QueueBrowser browser = getBrowser();
-            try {
-                Enumeration enumeration = browser.getEnumeration();
-                while (enumeration.hasMoreElements()) {
-                    requestsInFlight++;
-                    enumeration.nextElement();
-                }
-            } finally {
-                browser.close();
-            }
+            int requestsInFlight = getRequestsInFlight();
+            int pullTasksSize = getPullTasksSize();
 
-            QueryBuilder builder = manager.buildQueryBuilderForClass(Task.class).get();
-            Query query = CapedwarfQueue.toTerm(builder, "queue", queueName).createQuery();
-            int pullTasksSize = manager.getQuery(query, Task.class).getResultSize();
+            int numTasks = requestsInFlight + pullTasksSize;
 
-            numTasks = requestsInFlight + pullTasksSize;
-
+            TaskQueuePb.TaskQueueFetchQueueStatsResponse.QueueStats stats = new TaskQueuePb.TaskQueueFetchQueueStatsResponse.QueueStats();
             stats.setNumTasks(numTasks);
             stats.setOldestEtaUsec(oldestEtaUsec);
 
@@ -106,6 +92,27 @@ class QueueStatisticsImpl extends JmsAdapter implements QueueStatisticsInternal 
             throw re;
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private int getPullTasksSize() {
+        QueryBuilder builder = manager.buildQueryBuilderForClass(Task.class).get();
+        Query query = CapedwarfQueue.toTerm(builder, "queue", queueName).createQuery();
+        return manager.getQuery(query, Task.class).getResultSize();
+    }
+
+    private int getRequestsInFlight() throws Exception {
+        QueueBrowser browser = getBrowser();
+        try {
+            int requestsInFlight = 0;
+            Enumeration enumeration = browser.getEnumeration();
+            while (enumeration.hasMoreElements()) {
+                requestsInFlight++;
+                enumeration.nextElement();
+            }
+            return requestsInFlight;
+        } finally {
+            browser.close();
         }
     }
 }
