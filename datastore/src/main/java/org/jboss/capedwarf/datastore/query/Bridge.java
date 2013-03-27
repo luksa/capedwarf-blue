@@ -26,6 +26,8 @@ import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.appengine.api.blobstore.BlobKey;
@@ -74,7 +76,6 @@ public enum Bridge implements TwoWayStringBridge {
     BLOB_KEY("040", new BlobKeyBridge()),
 
     DOUBLE("050", new DoubleBridge()),
-    FLOAT("050", new FloatBridge()),
 
     GEO_PT("060", new GeoPtBridge()),
 
@@ -86,6 +87,20 @@ public enum Bridge implements TwoWayStringBridge {
     TEXT("999", new TextBridge()),
     BLOB("999", new BlobBridge()),
     EMBEDDED_ENTITY("999", new EmbeddedEntityBridge());
+
+    private static Map<Class<?>, Bridge> typeToBridgeMap;
+
+    static {
+        typeToBridgeMap = new HashMap<Class<?>, Bridge>();
+        for (Bridge bridge : values()) {
+            Set<Class<?>> types = bridge.bridge.types();
+            if (types != null) {
+                for (Class<?> type : types) {
+                    typeToBridgeMap.put(type, bridge);
+                }
+            }
+        }
+    }
 
     private OrderingPrefixer orderingPrefixer;
     private BridgeSpi bridge;
@@ -106,13 +121,11 @@ public enum Bridge implements TwoWayStringBridge {
     }
 
     public static Bridge getBridge(Class<?> type) {
-        for (Bridge bridge : values()) {
-            Set<Class<?>> types = bridge.bridge.types();
-            if (types != null && types.contains(type)) {
-                return bridge;
-            }
+        Bridge bridge = typeToBridgeMap.get(type);
+        if (bridge == null) {
+            throw new IllegalArgumentException("No bridge found for type " + type);
         }
-        throw new IllegalArgumentException("No bridge found for type " + type);
+        return bridge;
     }
 
     public boolean isAssignableTo(Class<?> type) {
@@ -215,26 +228,6 @@ public enum Bridge implements TwoWayStringBridge {
         public Object convertValue(Object value) {
             checkType(value, Boolean.class);
             return value;
-        }
-    }
-
-    public static class FloatBridge extends BuiltInBridge {
-        public FloatBridge() {
-            super(new org.hibernate.search.bridge.builtin.FloatBridge());
-        }
-
-        public Set<Class<?>> types() {
-            return Sets.<Class<?>>newHashSet(Float.class, Double.class);
-        }
-
-        @Override
-        public Object getValue(String value) {
-            return null;
-        }
-
-        @Override
-        public Object convertValue(Object value) {
-            return null;
         }
     }
 
@@ -385,6 +378,7 @@ public enum Bridge implements TwoWayStringBridge {
         public Set<Class<?>> types() {
             return Sets.<Class<?>>newHashSet(Long.class, Integer.class, Short.class, Byte.class);
         }
+
         public String objectToString(Object object) {
             long num = ((Number) object).longValue();
             return longToString(num);
@@ -563,25 +557,25 @@ public enum Bridge implements TwoWayStringBridge {
 
         @Override
         protected Rating fromLong(long value) {
-            return new Rating((int)value);
+            return new Rating((int) value);
         }
     }
 
     private static class GeoPtBridge extends AbstractBridgeSpi {
-        private FloatBridge floatBridge = new FloatBridge();
+        private DoubleBridge doubleBridge = new DoubleBridge();
 
         public Class<?> type() {
             return GeoPt.class;
         }
 
         public String objectToString(Object object) {
-            return floatBridge.objectToString(((GeoPt) object).getLatitude()) + ";" + floatBridge.objectToString(((GeoPt) object).getLongitude());
+            return doubleBridge.objectToString(((GeoPt) object).getLatitude()) + ";" + doubleBridge.objectToString(((GeoPt) object).getLongitude());
         }
 
         public Object stringToObject(String stringValue) {
             String[] pair = stringValue.split(";");
-            float latitude = (Float)floatBridge.stringToObject(pair[0]);
-            float longitude = (Float)floatBridge.stringToObject(pair[1]);
+            float latitude = ((Double) doubleBridge.stringToObject(pair[0])).floatValue();
+            float longitude = ((Double) doubleBridge.stringToObject(pair[1])).floatValue();
             return new GeoPt(latitude, longitude);
         }
     }
@@ -611,7 +605,7 @@ public enum Bridge implements TwoWayStringBridge {
 
         public Object stringToObject(String stringValue) {
             int spaceIndex = stringValue.indexOf(' ');
-            return new IMHandle(IMHandle.Scheme.valueOf(stringValue.substring(0, spaceIndex)), stringValue.substring(spaceIndex+1));
+            return new IMHandle(IMHandle.Scheme.valueOf(stringValue.substring(0, spaceIndex)), stringValue.substring(spaceIndex + 1));
         }
     }
 
