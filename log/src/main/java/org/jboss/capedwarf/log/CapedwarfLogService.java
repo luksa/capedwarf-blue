@@ -22,6 +22,9 @@
 
 package org.jboss.capedwarf.log;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.text.DateFormat;
 import java.text.MessageFormat;
 import java.text.SimpleDateFormat;
@@ -188,6 +191,21 @@ public class CapedwarfLogService implements ExposedLogService {
     }
 
     public void log(LogRecord record) {
+        String logToFile = System.getProperty("logToFile");
+        if (logToFile != null)
+        try {
+            synchronized (CapedwarfLogService.class) {
+                PrintWriter out = new PrintWriter(new FileWriter(logToFile, true));
+                try {
+                    out.println(record.getMillis() + " " + getLogLevel(record) + " " + record.getLoggerName() + ": " + getFormattedMessage(record));
+                } finally {
+                    out.close();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         // did we disable logging
         if (ignoreLogging)
             return;
